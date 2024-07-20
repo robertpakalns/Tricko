@@ -60,3 +60,15 @@ export class Service {
             }))
     }
 }
+
+// use
+// const response = await new Service(https://voxiom.io/profile/player/a, { method: "POST" })
+// console.log(response)
+// the response will return an error object since the player "a" does not exist in Voxiom.io
+// {
+//     "success": false,
+//     "code": 404,
+//     "text": "Not found",
+//     "game": "Voxiom.io",
+//     "type": "Player"
+// }
