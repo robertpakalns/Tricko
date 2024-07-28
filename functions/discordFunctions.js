@@ -28,7 +28,7 @@ export const handleError = async (error, interaction) => { // sends a webhook an
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: `${title}; ${optionsList} \`\`\`${error.stack}\`\`\`` })
     })
-    await interaction.editReply({
+    await interaction.editReply({ // in case you use Builder (developed by me) class
         embeds: [{
             title: "ERROR",
             description: "An error occurred. Please try again later.",
