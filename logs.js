@@ -17,7 +17,7 @@ const urlMap = {
         Clan: { inGame: "https://voxiom.io/clans/view", tricko: "https://tricko.pro/clan/player" },
     },
     "Cryzen.io": {
-        Player: { inGame: "`[undefined]`", tricko: "https://tricko.pro/cryzen/player" },
+        Player: { inGame: null, tricko: "https://tricko.pro/cryzen/player" },
     }
 }
 
@@ -52,12 +52,13 @@ export const checkName = (name, game, mode, type) => {
 export const checkBrActivity = (name, array) => {
     if (typeof name !== "string") return
     const potentialFarmMatches = array.filter(el =>
-        el.deaths !== 0 && // player has no deaths
-        el.rank !== 1 && // player has not won the match
-        el.survival_time < 60 && // player played less than 60 seconds
+        el.deaths !== 0 &&                                    // player has no deaths
+        el.rank !== 1 &&                                      // player has not won the match
+        el.survival_time < 60 &&                              // player played less than 60 seconds
         new Date(el.time) > new Date(Date.now() - 2500000000) // match wass earlier than ~30 days ago (relatively new)
     ).length
-    if (potentialFarmMatches / array.length >= 0.7) sendWebhook(name, "Voxiom.io", "Player", "BR Gem Farming")
+    if (potentialFarmMatches / array.length >= 0.7)           // sends a webhook if 7 and more "farming" matches
+        sendWebhook(name, "Voxiom.io", "Player", "BR Gem Farming")
 }
 
 export const checkDuplicates = (name, array) => {
