@@ -1,13 +1,17 @@
 const errorTexts = {
     0: "CORS or network error",
     400: "Bad request",
+    401: "Unauthorized",
     404: "Not found",
+    503: "Service unavailable",
     504: "Response took too long"
 }
 
 const urls = {
     "https://voxiom.io": "Voxiom.io",
-    "https://api.cryzen.io": "Cryzen.io"
+    "https://api.cryzen.io": "Cryzen.io",
+    "https://api.vectaria.io": "Vectaria.io",
+    "https://api.kirka.io": "Kirka.io"
 }
 
 const list = {
@@ -16,8 +20,16 @@ const list = {
     "https://voxiom.io/match": "Match",
     "https://voxiom.io/profile/leaderboard": "Leaderboard",
     "https://voxiom.io/market/price_history": "Skin",
+
     "https://api.cryzen.io/v2/users/profile": "Player",
-    "https://api.cryzen.io/v2/leaderboard": "Leaderboard"
+    "https://api.cryzen.io/v2/leaderboard": "Leaderboard",
+
+    "https://api.vectaria.io/v2/users/profile": "Player",
+    "https://api.vectaria.io/v2/games": "Server",
+
+    "https://api.kirka.io/api/user/getProfile": "Player",
+    "https://api.kirka.io/api/clans": "Clan",
+    "https://api.kirka.io/api/leaderboard": "Leaderboard"
 }
 
 const ranges = ["day", "week", "all"]
@@ -31,40 +43,57 @@ const sorts = {
 
 export class Service {
     constructor(url, options) {
-        return fetch(url, options)
-            .then(r => r.text())
-            .then(data => {
-                if (data.includes("Gateway time-out")) throw { code: 504 }
-                if (url.includes("https://voxiom.io/profile/leaderboard")) {
-                    const { searchParams } = new URL(url)
-                    const type = url.includes("leaderboard_clan") ? "clan" : (searchParams.get("game_mode") || "all")
-                    const range = searchParams.get("range") || ""
-                    const sort = searchParams.get("sort")
-                    if (!sorts[type] || (type !== "all" && !ranges.includes(range)) || !sorts[type].includes(sort)) throw { code: 400 }
+        return this.fetchData(url, options)
+    }
+
+    async fetchData(url, options) {
+        try {
+            if (url.includes("voxiom.io/profile/leaderboard")) {
+                const { searchParams } = new URL(url)
+                const type = url.includes("leaderboard_clan") ? "clan" : (searchParams.get("game_mode") || "all")
+                if (!sorts[type] ||
+                    (type !== "all" && !ranges.includes(searchParams.get("range") || "")) ||
+                    !sorts[type].includes(searchParams.get("sort"))) {
+                    throw 400
                 }
-                data = JSON.parse(data)
-                if (url.includes("https://voxiom.io") && data.success === false) throw { code: 404 }
-                if (url.includes("https://voxiom.io/market/price_history")) {
-                    const { item_type } = JSON.parse(options.body)
-                    if (item_type < 1 || item_type > 531) throw { code: 400 }
-                }
-                if (url.includes("https://api.cryzen.io") && data.statusCode) throw { code: data.statusCode }
-                return data
-            })
-            .catch(error => ({
+            }
+
+            if (url.includes("voxiom.io/market/price_history")) {
+                const { item_type } = JSON.parse(options.body)
+                if (item_type < 1 || item_type > 531) throw 400
+            }
+
+            const response = await fetch(url, options)
+            let data = await response.text()
+
+            if (data.includes("Gateway time-out")) throw 504
+
+            data = JSON.parse(data)
+
+            if (data.success === false) throw 404
+            if (data.statusCode) throw data.statusCode
+
+            return data
+        }
+        catch (code) {
+            return {
                 success: false,
-                code: error.code || "[???]",
-                text: errorTexts[error.code] || "[???]",
-                game: urls[Object.keys(urls).find(key => url.includes(key))] || "[???]",
+                code: code || "[???]",
+                text: errorTexts[code] || "[???]",
+                game: urls["https://" + new URL(url).host] || "[???]",
                 type: list[Object.keys(list).find(key => url.includes(key))] || "[???]"
-            }))
+            }
+        }
     }
 }
 
-// use
-// const response = await new Service(https://voxiom.io/profile/player/a, { method: "POST" })
-// console.log(response)
-// the response will return an error object since the player "a" does not exist in Voxiom.io
+// Use
+// const url = "https://voxiom.io/profile/player/a"
+// const options = { method: "POST" }
+// const response = await new Service(url, options)  // await is mandatory because it is a promise
+// console.log(response)                             // the response will return an error object since the player "a" does not exist in Voxiom.io
+//
+// Result
 // {
 //     "success": false,
 //     "code": 404,
