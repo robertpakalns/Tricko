@@ -1,10 +1,25 @@
-const blackList = ["@ss", "ass", "bitch", "b1tch", "bltch", "bastard", "cock", "c0ck", "cum", "cunt", "dick", "fuck", "nigga", "niga", "nigger", "niger", "pussy", "sex", "shit"]
-const whiteList = ["assault", "lasso", "passion", "class", "massive", "solasso", "ericasso"]
+const blackList = [
+    "@ss", "ass", "bitch", "b1tch", "bltch", "bastard", "boob", "cock",
+    "c0ck", "cum", "cunt", "dick", "fuck", "megaballs",
+    "nigga", "niga", "nigger", "niger", "reggin", "pussy",
+    "sex", "slut", "shit",
+    "bigmonkeyballs",
+    "freepalestine", "freeukraine",
+    "hitler", "gitler", "adolfhtler",
+    "ibusttokids", "ihitkids",
+    "kkk"
+]
+const whiteList = [
+    "assault", "assassin", "assasin", "moisassin", "bassalion",
+    "lasso", "passion", "class", "massive", "solasso", "ericasso",
+    "cocktail", "shitai", "peacock", "cockatoo",
+    "wasssa", "alibassill", "lasse", "hassa",
+    "assister", "mass", "aaasss", "eduararias",
+    "assion", "wassup", "seabass", "yassin", "plass"
+]
 // arrays will be supplemented later
 
-const creationTime = t => `<t:${Math.ceil(new Date(t).getTime() / 1000)}:R>` // Discord relative date format
-
-const webhooks = { // urls to webhooks
+const webhooks = {      // Discord webhook IDs
     "Cryzen.io": "",
     "Kirka.io": "",
     "Vectaria.io": "",
@@ -13,16 +28,37 @@ const webhooks = { // urls to webhooks
 
 const urlMap = {
     "Voxiom.io": {
-        Player: { inGame: "https://voxiom.io/player", tricko: "https://tricko.pro/voxiom/player" },
-        Clan: { inGame: "https://voxiom.io/clans/view", tricko: "https://tricko.pro/clan/player" },
+        Player: "https://voxiom.io/player",
+        Clan: "https://voxiom.io/clans/view"
     },
     "Cryzen.io": {
-        Player: { inGame: null, tricko: "https://tricko.pro/cryzen/player" },
+        Player: null
+    },
+    "Vectaria.io": {
+        Player: null
+    },
+    "Kirka.io": {
+        Player: "https://kirka.io/profile",
+        Clan: null
     }
 }
 
-const sendWebhook = (name, game, mode, type) => {
-    const urls = urlMap[game]?.[mode] || { inGame: "`[undefined]`", tricko: "`[undefined]`" }
+const sendWebhook = (name, game, mode, type, p) => {
+    const url = urlMap[game][mode] || null
+
+    const dataField = [
+        `Name: \`${name}\``,
+        `Game: \`${game}\``,
+        `Mode: \`${mode}\``,
+        `Type: \`${type}\``,
+        `Time: <t:${Math.ceil(Date.now() / 1000)}:R>`
+    ]
+
+    const linkField = [
+        `${game}: ${url ? `${url}/${encodeURIComponent(p)}` : "`No Data`"}`,
+        `Tricko: https://tricko.pro/${game.split(".")[0].toLowerCase()}/${mode.toLowerCase()}/${p}`
+    ]
+
     fetch(`https://discord.com/api/webhooks/${webhooks[game]}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -30,35 +66,32 @@ const sendWebhook = (name, game, mode, type) => {
             embeds: [{
                 title: "Violation Detected",
                 fields: [
-                    { name: "Data", value: `Name: \`${name}\`\nGame: \`${game}\`\nMode: \`${mode}\`\nType: \`${type}\`\nTimestamp: ${creationTime(new Date())}` },
-                    { name: "Links", value: `In Game URL: ${urls.inGame}/${name}\nTricko URL: ${urls.tricko}/${name}` },
+                    { name: "Data", value: dataField.join("\n") },
+                    { name: "Links", value: linkField.join("\n") },
                 ],
-                color: 16711680,
-                footer: { text: "Powered By Tricko", icon_url: "https://tricko.pro/icon.png" }
+                color: 16747520,
+                footer: { text: "Powered by Tricko", icon_url: "https://bot.tricko.pro/bot_icon.webp" },
             }]
         })
     })
 }
 
-export const checkName = (name, game, mode, type) => {
-    if (typeof name !== "string") return
-
-    const inBlackList = blackList.some(word => name.toLowerCase().includes(word))
-    const inWhiteList = whiteList.some(word => name.toLowerCase().includes(word))
-
-    if (inBlackList && !inWhiteList) sendWebhook(name, game, mode, type)
+export const checkNname = (...args) => {
+    if (typeof args[0] !== "string") return
+    const f = word => args[0].toLowerCase().includes(word)
+    if (blackList.some(f) && !whiteList.some(f)) sendWebhook(...args)
 }
 
 export const checkBrActivity = (name, array) => {
     if (typeof name !== "string") return
-    const potentialFarmMatches = array.filter(el =>
-        el.deaths !== 0 &&                                    // player has no deaths
-        el.rank !== 1 &&                                      // player has not won the match
-        el.survival_time < 60 &&                              // player played less than 60 seconds
-        new Date(el.time) > new Date(Date.now() - 2500000000) // match wass earlier than ~30 days ago (relatively new)
+    const farmMatches = array.filter(el =>
+        el.deaths !== 0 &&                                               // player has no deaths
+        el.rank !== 1 &&                                                 // player has not won the match
+        el.survival_time < 60 &&                                         // player played less than 60 seconds
+        new Date(el.time) > new Date(Date.now() - 2500000000)            // match wass earlier than ~30 days ago (relatively new)
     ).length
-    if (potentialFarmMatches / array.length >= 0.7)           // sends a webhook if 7 and more "farming" matches
-        sendWebhook(name, "Voxiom.io", "Player", "BR Gem Farming")
+    if (array.length >= 5 && (farmMatches.length / array.length) >= 0.7) // sends a webhook if 7 and more "farming" matches
+        sendWebhook(name, "Voxiom.io", "Player", "BR Gem Farming", name)
 }
 
 export const checkDuplicates = (name, array) => {
@@ -70,7 +103,7 @@ export const checkDuplicates = (name, array) => {
     if (isDupe) sendWebhook(name, "Vectaria.io", "Player", "Skin Dupe")
 }
 
-// use
-// checkName(badName, "Voxiom.io", "Player", "Name")
-// checkBrActivity(name, array) //Voxiom.io BR only
-// checkDuplicates(name, array) //Vectaria.io only
+// Use
+// checkName(badName, "Voxiom.io", "Player", "Name", badName)
+// checkBrActivity(name, array)                               // Voxiom.io BR only
+// checkDuplicates(name, array)                               // useless function
