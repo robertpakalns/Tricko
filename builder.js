@@ -71,7 +71,7 @@ export class Builder {
             })
 
             updateMessage().then(message => {
-                if (maxPage > 1) message.createMessageComponentCollector({ filter: i => i.user.id === this.interaction.user.id, time: 6000 })
+                if (maxPage > 1) message.createMessageComponentCollector({ filter: i => i.user.id === this.interaction.user.id, time: 60000 })
                     .on("collect", i => {
                         page += i.customId === "next" ? 1 : i.customId === "back" ? -1 : 0
                         updateMessage().then(() => i.deferUpdate())
